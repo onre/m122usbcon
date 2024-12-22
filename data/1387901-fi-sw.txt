@@ -1,0 +1,151 @@
+# gecos format. fields:
+#
+# 1  hexadecimal code sent by the keyboard
+# 2  desired hexadecimal USB usage ID for the key
+# 3  key name
+# 4  label(s) on the key, use commas to separate rows
+#
+# 
+# the mapping is what it is, as there just aren't usage IDs for
+# all of the keys.
+#
+01:a1:Setup:SetUp
+03:c2:Print:Print
+04:a0::
+05:9a:SysRq:SysRq,Attn
+06:d8:Clear:Clear
+07:3a:Cmd1:Cmd1
+08:68:Cmd13:Cmd13
+09:a3:Recrd:Recrd
+# Clear/Again + Play it again, Sam = this
+0a:a2:Play:Play,Test
+0b:75:Help:Help,Hex
+0c:d9:Erase Input:Erase Input
+0d:2b:Tab:Tab
+# 03 has good-enough approximate location for Esc
+0e:29::
+0f:3b:Cmd2:Cmd2
+10:69:Cmd14:Cmd14
+11:e0:Reset:Reset,Cancl
+12:e1:Left Shift:Left Shift
+13:64:<:>,<
+14:39:Caps Lock:Caps Lock
+15:14:q:q
+16:1e:1:1,!
+17:3c:Cmd3:Cmd3,- Alarm
+18:6a:Cmd15:Cmd15,+ Alarm
+19:e2:Left Alt:Left Alt
+1a:1d:z:z
+1b:16:s:s
+1c:04:a:a
+1d:1a:w:w
+1e:1f:2:2,\"
+1f:3d:Cmd4:Cmd4,- Click
+20:6b:Cmd16:Cmd16,+ Click
+21:06:c:c
+22:1b:x:x
+23:07:d:d
+24:08:e:e
+25:21:4:4,¤
+26:20:3:3,§
+27:3e:Cmd5:Cmd5
+28:6c:Cmd17:Cmd17,Click OnOff
+29:2c:Space:Space
+2a:19:v:v
+2b:09:f:f
+2c:17:t:t
+2d:15:r:r
+2e:22:5:5,%
+2f:3f:Cmd6:Cmd6,Row/Col
+30:6d:Cmd18:Cmd18,Blink Cursr
+31:11:n:n
+32:05:b:b
+33:0b:h:h
+34:0a:g:g
+35:1c:y:y
+36:23:6:6,&
+37:40:Cmd7:Cmd7,Limit Color
+38:6e:Cmd19:Cmd19,Alt Cursr
+39:e6:Right Alt:Right Alt
+3a:10:m:m
+3b:0d:j:j
+3c:18:u:u
+3d:24:7:7,/
+3e:25:8:8,(
+3f:41:Cmd8:Cmd8
+40:6f:Cmd20:Cmd20
+41:36:\,:\,,;
+42:0e:k:k
+43:0c:i:i
+44:12:o:o
+45:27:0:0,=
+46:26:9:9,)
+47:42:Cmd9:Cmd9
+48:70:Cmd21:Cmd21,Extnd Dsply
+49:37:.:.,\:
+4a:38:-:-,_
+4b:0f:l:l
+4c:33:ö:ö
+4d:13:p:p
+4e:2d:+:+,?
+4f:43:Cmd10:Cmd10
+50:71:Cmd22:Cmd22,No Dim
+# 51 is under right shift
+52:34:ä:ä
+53:31:':',*
+54:2f:å:å
+55:2e:é:é
+56:44:Cmd11:Cmd11
+57:72:Cmd23:Cmd23
+58:e4:Enter:Enter
+59:e5:Right Shift:Right Shift
+5a:28:Field Exit:Field Exit
+5b:30:^:^,ü
+# 5c is under enter
+# 5d is under backspace
+5e:45:Cmd12:Cmd12,Multi Natn
+5f:73:Cmd24:Cmd24,Set Addrs
+60:51:Down:Down,Roll Down
+61:50:Left:Left
+62:9e:Home:Home
+63:52:Up:Up,Roll Up
+64:4c:Linefeed:Linefeed
+65:4d:Ins:Ins
+66:2a:Backspace:Backspace
+67:49:Backtab:Backtab
+# 68 is under numpad 0
+# numpad begins
+69:59:1:1
+# this one is in the cursor cross tho
+6a:4f:Right:Right
+# numpad continues
+6b:5c:4:4
+6c:5f:7:7
+# area above the cursor cross continues a bit 
+6d:4e:Del:Del
+6e:4a:Dup:Dup
+6f:4b::
+# back to numpad
+70:62:0:0
+71:63:,:,
+72:5a:2:2
+73:5d:5:5
+74:5e:6:6
+75:60:8:8
+76:53::
+77:54::
+# 78 is under field +
+79:58:Field +:Field +
+7a:5b:3:3
+7b:67::
+7c:57:Field -:Field -
+7d:61:9:9
+7e:55::
+# 7f-82 may exist on the key matrix but no idea where.
+# one might be hiding under the spacebar next to left alt.
+#
+# 83 mapped to stop as it is next to a key labeled Play
+83:78::
+84:56::
+
+
