@@ -1,6 +1,7 @@
 #ifndef _READMAP_H
 #define _READMAP_H
 
+#include <stdio.h>
 #include "mapping.h"
 
 #define MAPSIZE 0xff
