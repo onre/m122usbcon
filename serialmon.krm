@@ -1,0 +1,40 @@
+#!/usr/bin/env -S kermit +
+# -*- mode: kermit -*-
+
+ SET TERMINAL LF-DISPLAY CRLF
+ SET ESCAPE-CHARACTER ^Z
+ SET EXIT ON-DISCONNECT ON
+
+ ECHO
+ XECHO "\v(timestamp)    finding free ttyACM port.."
+
+ :GETACM
+  SET LINE /dev/ttyACM0
+  IF FAIL SET LINE /dev/ttyACM1
+  IF FAIL SET LINE /dev/ttyACM2
+  IF FAIL SET LINE /dev/ttyACM3
+  XIF FAIL {
+          GOTO WAITRETRY 
+  }
+
+  SET FLOW NONE
+  SET HANDS NONE
+  SET CARR OFF
+  SET MODEM NONE
+  SET SPEED 115200
+
+  WHILE OPEN CONNECTION {
+          ECHO
+          ECHO "\v(timestamp)    connected to \v(line)    press C-z q to exit"
+          ECHO
+          CQ
+          ECHO
+          XECHO "\v(timestamp)    the port went away, waiting for a new one.."
+          GOTO WAITRETRY
+  }
+
+          :WAITRETRY
+  XECHO "."
+  MPAUSE 250
+  GOTO GETACM
+

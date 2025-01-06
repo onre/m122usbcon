@@ -1,3 +1,6 @@
+/** 
+ * 2025-01-06: modified for m122usbcon
+ */
 /* Version V1.0.9
    PS2KeyAdvanced.cpp - PS2KeyAdvanced library
    Copyright (c) 2007 Free Software Foundation.  All right reserved.
@@ -339,10 +342,6 @@ uint8_t decode_key( uint8_t value )
 	if( value < 0xF0 )
 	    return state;      // Save response and decrement
 
-    // E1 Pause mode  special case just decrement
-    if( _ps2mode & _E1_MODE )
-	return 2;
-
     switch( value )
 	{
 #if 0
@@ -382,26 +381,6 @@ uint8_t decode_key( uint8_t value )
 		    state |= 0x10;            // send _command on exit
 		}
 	    break;
-	case PS2_KC_BAT:     // BAT pass
-	    _bytes_expected = 0;         // reset as if in middle of something lost now
-	    state = 4;
-	    break;
-#if 0
-	case PS2_KC_EXTEND1:   // Major extend code (PAUSE key only)
-	    if( !( _ps2mode & _E1_MODE ) )  // First E1 only
-		{
-		    _bytes_expected = 7;       // seven more bytes
-		    _ps2mode |= _E1_MODE;
-		    _ps2mode &= ~_BREAK_KEY;    // Always a make
-		}
-	    state = 0;
-	    break;
-	case PS2_KC_EXTEND:   // Two byte Extend code
-	    _bytes_expected = 1;        // one more byte at least to wait for
-	    _ps2mode |= _E0_MODE;
-	    state = 0;
-	    break;
-#endif
 	}
     return state;
 }

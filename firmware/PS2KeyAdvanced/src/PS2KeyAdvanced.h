@@ -1,3 +1,6 @@
+/** 
+ * 2025-01-06: modified for m122usbcon
+ */
 /* Version V1.0.9
   PS2KeyAdvanced.h - PS2KeyAdvanced library
   Copyright (c) 2007 Free Software Foundation.  All right reserved.
@@ -166,6 +169,10 @@
 #if defined( ARDUINO_ARCH_ESP32 )
 #define PS2_SUPPORTED           1
 #define PS2_ONLY_CHANGE_IRQ     1
+#endif
+
+#ifdef TEENSYDUINO
+#define PS2_SUPPORTED 1
 #endif
 
 // Invalid architecture
