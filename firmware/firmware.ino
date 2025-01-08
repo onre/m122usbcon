@@ -5,12 +5,12 @@
 /**
  * adjust these to match your setup.
  */
-const int datapin = 1;
-const int irqpin = 0;
+const int datapin = 14;
+const int irqpin = 12;
 const int ledpin = 13;
 
 /**
- * is the serial monitor enabled by default?
+ * is the serial monitor active by default?
  */
 int serialmon = 0;
 
@@ -26,6 +26,8 @@ int sending = 1;
 
 const uint8_t SERIALMON_SHORTCUT_1 = 0x01; /* Setup */
 const uint8_t SERIALMON_SHORTCUT_2 = 0x4d; /* p */
+
+const unsigned long reset_timeout = 1000;
 
 /**
  * for now, the modifier keys are specified here.
@@ -111,6 +113,7 @@ uint8_t keystate[KEYS];
 
 static char hexbuf[HEXBUF_SIZE];
 static char *hexbufp;
+
 
 
 uint16_t scancode_to_mod(uint8_t scancode) {
@@ -273,15 +276,39 @@ int process_code(void) {
 	return scancode;
 }
 
+int wait_for_ack(void) {
+	unsigned long then;
+	then = millis();
+
+	while(process_code() != KEYB_REPLY_ACK) {
+		digitalWriteFast(ledpin, (millis() / 1000 % 2));
+		if (millis() - then > reset_timeout) {
+			Serial.printf("timed out...\n");
+			return 0;
+		}
+		delay(1);
+	};
+
+	return 1;
+}
+
 void reset_kb(void) {
+	digitalWriteFast(ledpin, 1);
+
+ again:
 	sendbyte(KEYB_RESET);
-	while(process_code() != KEYB_REPLY_ACK);
+	if (!wait_for_ack())
+		goto again;
 
 	sendbyte(KEYB_SET_ALL_MAKE_BREAK);
-	while(process_code() != KEYB_REPLY_ACK);
-
+	if (!wait_for_ack())
+		goto again;
+	
 	sendbyte(KEYB_ENABLE);
-	while(process_code() != KEYB_REPLY_ACK);
+	if (!wait_for_ack())
+		goto again;
+
+	digitalWriteFast(ledpin, 0);
 }
 
 void process_serial() {
@@ -378,6 +405,9 @@ void setup() {
 	pinMode(ledpin, OUTPUT);
 	keyboard.begin(datapin, irqpin);
 
+	if (serialmon)
+		Serial.printf("\nready, resetting kb\n\n");
+	
 	reset_kb();
 	
 	while (1) {
