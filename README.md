@@ -16,7 +16,9 @@ When you're done, edit the Makefile and point the `KEYMAP_FILE` variable to the 
 
 ## The serial monitor
 
-If you need to debug your keyboard, this feature can be useful. It is enabled by default, so all you need to do is upload the firmware and tell your communications software to connect to the microcontroller. If you use [C-Kermit](https://www.kermitproject.org/), you can use the included `serialmon.krm` script. You may need to adjust the port names to match your system.
+If you need to debug your keyboard, this feature can be useful. To use it, build and install the firmware and then tell your communications software to connect to the microcontroller. If you use [C-Kermit](https://www.kermitproject.org/), you can use the included `serialmon.krm` script. You may need to adjust the port names to match your system.
+
+Once the connection is established, press the shortcut defined in `firmware/firmware.ino` to activate the monitor. The default shortcut is the extreme left and right keys of the number row.
 
 The monitor accepts a few commands. Press `r` to reset the keyboard, `i` to ask for ID, `x` to show which keys are currently being held and `s` to send arbitrary byte of data to it, input in hex. You can exit the hex input by pressing `Esc` or `Spacebar`.
 

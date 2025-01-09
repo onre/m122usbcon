@@ -10,22 +10,28 @@ const int irqpin = 12;
 const int ledpin = 13;
 
 /**
- * is the serial monitor active by default?
+ * the default mode to start in. 0 means sending USB events, 1 means
+ * serial monitoring. the modes are mutually exclusive because horrible
+ * things happen if you have both on and focus the serial monitor
+ * window.
+ *
+ * this could probably be detected but... nah. led operation is reversed
+ * when in serial monitoring mode.
  */
-int serialmon = 0;
+
+#define MODE_SERIALMON 0
+#define MODE_USB 1
+
+int operating_mode = MODE_USB;
+
+#define LED(x) ((operating_mode == MODE_SERIALMON) ? (x ? 0 : 1) : (x ? 1 : 0))
 
 /**
- * enable the actual USB keyboard functionality? can be useful to
- * disable during initial setup.
- */
-int sending = 1;
-
-/**
- * the two scancodes which toggle the serial monitor on and off.
+ * the shortcut to toggle between the modes.
  */
 
-const uint8_t SERIALMON_SHORTCUT_1 = 0x01; /* Setup */
-const uint8_t SERIALMON_SHORTCUT_2 = 0x4d; /* p */
+const uint8_t SERIALMON_SHORTCUT_1 = 0x05; /* SysRq/attn */
+const uint8_t SERIALMON_SHORTCUT_2 = 0x84; /* blank key at the other end of the number row */
 
 const unsigned long reset_timeout = 1000;
 
@@ -139,6 +145,17 @@ uint16_t scancode_to_mod(uint8_t scancode) {
 	}
 }
 
+void usb_release_all(void) {
+	Keyboard.set_modifier(0);
+	Keyboard.set_key1(0);
+	Keyboard.set_key2(0);
+	Keyboard.set_key3(0);
+	Keyboard.set_key4(0);
+	Keyboard.set_key5(0);
+	Keyboard.set_key6(0);
+	Keyboard.send_now();
+}
+
 void add_held(uint8_t scancode) {
 	int p = -1;
 	for (int i = 0; i < 6; i++) {
@@ -164,12 +181,15 @@ void init_held(void) {
 }
 
 void sendbyte(uint8_t send) {
-	if (serialmon)
+	if (operating_mode == MODE_SERIALMON)
 		Serial.printf("\r     sent >>\t0x%02x\n", send);
 	keyboard.sendbyte(send);
 }
 
 void print_code(int scancode) {
+	if (operating_mode != MODE_SERIALMON)
+		return;
+	
 	if (keymap[scancode].scancode != 0) {
 		if (keystate[scancode]) {
 			Serial.printf("  pressed");
@@ -257,10 +277,9 @@ int process_code(void) {
 			}
 		}
 
-		if (serialmon)
+		if (operating_mode == MODE_SERIALMON) {
 			print_code(scancode);
-
-		if (sending) {
+		} else {
 			Keyboard.set_modifier(modifiers);
 			Keyboard.set_key1(held[0] ? keymap[held[0]].usage_id : 0);
 			Keyboard.set_key2(held[1] ? keymap[held[1]].usage_id : 0);
@@ -281,9 +300,10 @@ int wait_for_ack(void) {
 	then = millis();
 
 	while(process_code() != KEYB_REPLY_ACK) {
-		digitalWriteFast(ledpin, (millis() / 1000 % 2));
+		digitalWriteFast(ledpin, LED(millis() / 1000 % 2));
 		if (millis() - then > reset_timeout) {
-			Serial.printf("timed out...\n");
+			if (operating_mode == MODE_SERIALMON)
+				Serial.printf("timed out...\n");
 			return 0;
 		}
 		delay(1);
@@ -293,7 +313,7 @@ int wait_for_ack(void) {
 }
 
 void reset_kb(void) {
-	digitalWriteFast(ledpin, 1);
+	digitalWriteFast(ledpin, LED(1));
 
  again:
 	sendbyte(KEYB_RESET);
@@ -308,7 +328,7 @@ void reset_kb(void) {
 	if (!wait_for_ack())
 		goto again;
 
-	digitalWriteFast(ledpin, 0);
+	digitalWriteFast(ledpin, LED(0));
 }
 
 void process_serial() {
@@ -405,40 +425,42 @@ void setup() {
 	pinMode(ledpin, OUTPUT);
 	keyboard.begin(datapin, irqpin);
 
-	if (serialmon)
+	if (operating_mode == MODE_SERIALMON)
 		Serial.printf("\nready, resetting kb\n\n");
 	
 	reset_kb();
 	
 	while (1) {
 		if (process_code()) {
-			digitalWriteFast(ledpin, 1);
+			digitalWriteFast(ledpin, LED(1));
 			led_on = millis();
 		} else if (led_on && millis() - led_on > LED_ON_MS) {
-			digitalWriteFast(ledpin, 0);
+			digitalWriteFast(ledpin, LED(0));
 			led_on = 0;
 		}
 
-		if (serialmon)
+		if (operating_mode == MODE_SERIALMON)
 			process_serial();
 
 		if (keystate[SERIALMON_SHORTCUT_1] == KEYSTATE_DOWN
 				&& keystate[SERIALMON_SHORTCUT_2] == KEYSTATE_DOWN) {
 
+			usb_release_all();
+				
 			if (waiting)
 				continue;
 			
 			waiting = 1;
 			
-			if (serialmon) {
+			if (operating_mode == MODE_SERIALMON) {
 				Serial.printf("\n\nresume serial monitor by pressing %s + %s\n\n\t\t...bye!\n", keymap[0x01].name, keymap[0x4d].name);
-				serialmon = 0;
+				operating_mode = MODE_USB;
 			} else {
 				Serial.printf("\n\ngreetings, stranger.\n\n");
-				serialmon = 1;
+				operating_mode = MODE_SERIALMON;
 			}
-			
-		} else {
+
+		} else if (waiting) {
 			waiting = 0;
 		}
 	}

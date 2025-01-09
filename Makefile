@@ -11,7 +11,6 @@ CFLAGS			=	-g
 ARDUINO_CLI		=	arduino-cli
 ARDUINO_BUILDPATH	=	build/
 
-
 all:		keymap.h firmware upload
 
 mkheader:	${OBJS}
@@ -34,3 +33,5 @@ upload:		firmware
 
 clean:
 		rm -f *.o mkheader keymap.h firmware/keymap.h firmware/mapping.h
+
+.PHONY:		firmware upload
