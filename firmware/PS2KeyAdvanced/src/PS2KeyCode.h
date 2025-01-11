@@ -1,3 +1,7 @@
+/**
+ * NOTE: this is a modified version for m122usbcon.
+ */
+
 /* Version V1.0.8
   PS2KeyCode.h - PS2KeyAdvanced library Internal actual PS2 key code sequences
   Copyright (c) 2007 Free Software Foundation.  All right reserved.

@@ -1,6 +1,7 @@
-/** 
- * 2025-01-06: modified for m122usbcon
+/**
+ * NOTE: this is a modified version for m122usbcon.
  */
+
 /* Version V1.0.9
    PS2KeyAdvanced.cpp - PS2KeyAdvanced library
    Copyright (c) 2007 Free Software Foundation.  All right reserved.
