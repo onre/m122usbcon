@@ -31,7 +31,7 @@ int operating_mode = MODE_USB;
  */
 
 const uint8_t SERIALMON_SHORTCUT_1 = 0x05; /* SysRq/attn */
-const uint8_t SERIALMON_SHORTCUT_2 = 0x84; /* blank key at the other end of the number row */
+const uint8_t SERIALMON_SHORTCUT_2 = 0x84; /* blank key at numpad top right */
 
 const unsigned long reset_timeout = 1000;
 
