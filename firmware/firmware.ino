@@ -244,6 +244,12 @@ int process_code(void) {
 
 		if (keystate[scancode] == KEYSTATE_IGNORE)
 			return scancode;
+
+		if (scancode < 0xa0 && keymap[scancode].scancode == 0) {
+			if (operating_mode == MODE_SERIALMON)
+				print_code(scancode);
+			return scancode;
+		}
 		
 		switch (scancode) {
 		case KEYB_CODE_BREAK:
