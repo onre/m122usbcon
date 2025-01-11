@@ -41,6 +41,13 @@ As root:
 # udevadm trigger
 ```
 
+## TODO
+
+- general code cleanup
+- allow simultaneous USB output and serial monitoring with loopback detection
+- get rid of Arduino dependency
+- as a part of that, get rid of the C++ PS/2 library too
+
 ## License
 
 Contents of the `m122usbcon/PS2KeyAdvanced` directory are under LGPL and all the rest is MIT. See the LICENSE files in `m122usbcon/PS2KeyAdvanced` and this directory for more information.

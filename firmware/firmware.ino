@@ -260,9 +260,11 @@ int process_code(void) {
 	again:
 		scancode = keyboard.read();
 
-		if (keystate[scancode] == KEYSTATE_IGNORE
-				|| ( scancode <= MAX_SCANCODE
-						 && keymap[scancode].usage_id == 0 )) {
+		if (( scancode < KEYS
+					&& keystate[scancode] == KEYSTATE_IGNORE
+					)	|| (
+								scancode <= MAX_SCANCODE
+								&& keymap[scancode].usage_id == 0 )) {
 
 			if (keystate[scancode] == KEYSTATE_IGNORE)
 				ignored_scancodes++;
