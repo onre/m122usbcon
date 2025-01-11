@@ -436,6 +436,11 @@ class PS2KeyAdvanced {
     void echo( void );
 
     void sendbyte(uint8_t);
+
+
+    uint32_t getOverrunCount();
+    uint32_t getResendCount();
+    
     
     /*  Send Typematic rate/delay command to keyboard
        First Parameter  rate is 0 - 0x1F (31)

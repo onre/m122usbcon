@@ -2,6 +2,8 @@
 
 #include "keymap.h"
 
+#include "color.h"
+
 /**
  * adjust these to match your setup.
  */
@@ -22,7 +24,7 @@ const int ledpin = 13;
 #define MODE_SERIALMON 0
 #define MODE_USB 1
 
-int operating_mode = MODE_USB;
+int operating_mode = MODE_SERIALMON;
 
 #define LED(x) ((operating_mode == MODE_SERIALMON) ? (x ? 0 : 1) : (x ? 1 : 0))
 
@@ -106,7 +108,18 @@ const uint8_t KEYSTATE_IGNORE = 2;
 
 const uint8_t LED_ON_MS = 25;
 
+const uint8_t MAX_SCANCODE = 0x8f;
 
+/**
+ * with these we restart the microcontroller.
+ */
+#define RESTART_ADDR      0xE000ED0C
+#define READ_RESTART()    (*(volatile uint32_t *) RESTART_ADDR)
+#define WRITE_RESTART(val) \
+  ((*(volatile uint32_t *) RESTART_ADDR) = (val))
+
+
+#define STAT_INTERVAL 0
 
 PS2KeyAdvanced keyboard;
 
@@ -120,7 +133,8 @@ uint8_t keystate[KEYS];
 static char hexbuf[HEXBUF_SIZE];
 static char *hexbufp;
 
-
+unsigned int unknown_scancodes;
+unsigned int ignored_scancodes;
 
 uint16_t scancode_to_mod(uint8_t scancode) {
 	switch (scancode) {
@@ -182,30 +196,30 @@ void init_held(void) {
 
 void sendbyte(uint8_t send) {
 	if (operating_mode == MODE_SERIALMON)
-		Serial.printf("\r     sent >>\t0x%02x\n", send);
+		Serial.printf("\r     sent "CYAN">>"NC"\t0x%02x\n", send);
 	keyboard.sendbyte(send);
 }
 
-void print_code(int scancode) {
+void print_code(int scancode, int breaking) {
 	if (operating_mode != MODE_SERIALMON)
 		return;
 	
 	if (keymap[scancode].scancode != 0) {
-		if (keystate[scancode]) {
-			Serial.printf("  pressed");
-		} else {
+		if (breaking) {
 			Serial.printf(" released");
+		} else {
+			Serial.printf("  pressed");
 		}
 		if (keymap[scancode].usage_id)
-			Serial.printf(" <<\t0x%02x => 0x%02x", scancode, keymap[scancode].usage_id);
+			Serial.printf(" "PURPLE"<<"NC"\t0x%02x => 0x%02x", scancode, keymap[scancode].usage_id);
 		else
-			Serial.printf(" <<\t0x%02x => (none)", scancode);
+			Serial.printf(" "ORANGE"<<"NC"\t0x%02x => (none)", scancode);
 			
 		if (keymap[scancode].name)
 			Serial.printf(" = %s", keymap[scancode].name);
 	} else if (!error) {
 		if (scancode != KEYB_CODE_BREAK)
-			Serial.printf("    reply <<\t0x%02x", scancode);
+			Serial.printf("    reply "GREEN"<<"NC"\t0x%02x", scancode);
 			
 		switch (scancode) {
 		case KEYB_CODE_BREAK:
@@ -229,7 +243,10 @@ void print_code(int scancode) {
 		default:
 			;
 		}
+	} else {
+		Serial.printf("!");
 	}
+	
 	Serial.printf("\n");
  out:
 	;
@@ -240,21 +257,36 @@ int process_code(void) {
 	int scancode = 0;
 	
 	if (keyboard.available()) {
+	again:
 		scancode = keyboard.read();
 
-		if (keystate[scancode] == KEYSTATE_IGNORE)
-			return scancode;
+		if (keystate[scancode] == KEYSTATE_IGNORE
+				|| ( scancode <= MAX_SCANCODE
+						 && keymap[scancode].usage_id == 0 )) {
 
-		if (scancode < 0xa0 && keymap[scancode].scancode == 0) {
+			if (keystate[scancode] == KEYSTATE_IGNORE)
+				ignored_scancodes++;
+			else {
+				Serial.printf("UNKNOWN %d\n", scancode);
+				unknown_scancodes++;
+			}
+			
 			if (operating_mode == MODE_SERIALMON)
-				print_code(scancode);
+				print_code(scancode, breaking);
+			
+			if (breaking)
+				breaking = 0;
 			return scancode;
 		}
 		
+		if (operating_mode == MODE_SERIALMON && scancode > MAX_SCANCODE)
+			print_code(scancode, breaking);
+
 		switch (scancode) {
 		case KEYB_CODE_BREAK:
 			breaking = 1;
-			break;
+			while (!keyboard.available());
+			goto again;
 		case modifier_ctrl_l:
 		case modifier_ctrl_r:
 		case modifier_alt_l:
@@ -264,28 +296,24 @@ int process_code(void) {
 		case modifier_gui_l:
 		case modifier_gui_r:
 			if (breaking) {
-				keystate[scancode] = KEYSTATE_UP;
 				modifiers &= ~scancode_to_mod(scancode);
 				breaking = 0;
 			} else {
-				keystate[scancode] = KEYSTATE_DOWN;
 				modifiers |= scancode_to_mod(scancode);
 			}
 			break;
 		default:
-			if (breaking) {
-				keystate[scancode] = KEYSTATE_UP;
-				breaking = 0;
-				del_held(scancode);
-			} else {
-				keystate[scancode] = KEYSTATE_DOWN;
-				add_held(scancode);
+			if (scancode <= MAX_SCANCODE) {
+				if (breaking) {
+					breaking = 0;
+					del_held(scancode);
+				} else {
+					add_held(scancode);
+				}
 			}
 		}
 
-		if (operating_mode == MODE_SERIALMON) {
-			print_code(scancode);
-		} else {
+		if (1 || operating_mode == MODE_USB) {
 			Keyboard.set_modifier(modifiers);
 			Keyboard.set_key1(held[0] ? keymap[held[0]].usage_id : 0);
 			Keyboard.set_key2(held[1] ? keymap[held[1]].usage_id : 0);
@@ -321,6 +349,8 @@ int wait_for_ack(void) {
 void reset_kb(void) {
 	digitalWriteFast(ledpin, LED(1));
 
+	usb_release_all();
+
  again:
 	sendbyte(KEYB_RESET);
 	if (!wait_for_ack())
@@ -334,15 +364,43 @@ void reset_kb(void) {
 	if (!wait_for_ack())
 		goto again;
 
+	unknown_scancodes = ignored_scancodes = 0;
+	
 	digitalWriteFast(ledpin, LED(0));
 }
 
+void print_held(int print_nothing) {
+	int n = 0;
+
+	if (modifiers)
+		Serial.printf("  modifiers held: %x\n", modifiers);
+	
+	for (int i = 0; i < 6; i++) {
+		if (held[i])
+			n++;
+	}
+
+	if (n) {
+		Serial.printf("       keys held: ");
+		for (int i = 0; i < 6; i++) {
+			if (held[i]) {
+				if (keymap[held[i]].name) {
+					Serial.printf("%s\t", keymap[held[i]].name);
+				} else {
+					Serial.printf("0x%02x\t", held[i]);
+				}
+			}
+		}
+		Serial.printf("\n");
+	} else if (!n && print_nothing) {
+		Serial.printf(" nothing being held\n");
+	}
+}
+
 void process_serial() {
-	int n;
 	unsigned char send;
 
 	send = 0;
-	n = 0;
 	
 	if (Serial.available()) {
 		char c = Serial.read();
@@ -363,20 +421,14 @@ void process_serial() {
 				Serial.printf("hex to send? ");
 				hexin = 1;
 				break;
+			case 'q':
+			case 'Q':
+				/* restart the microcontroller */
+				WRITE_RESTART(0x5FA0004);
+				break;
 			case 'x':
 			case 'X':
-				for (int i = 0; i < KEYS; i++) {
-					if (keystate[i]) {
-						n++;
-						Serial.printf(" now being held: 0x%02x", i);
-						if (keymap[i].name) {
-							Serial.printf(" = %s", keymap[i].name);								
-						}
-						Serial.printf("\n");
-					}
-				}
-				if (!n)
-					Serial.printf(" nothing being held\n");
+				print_held(1);
 				break;
 			default:
 				;
@@ -410,15 +462,16 @@ void process_serial() {
 
 void setup() {
 	static int waiting;
-	unsigned long led_on;
+	unsigned long led_on, last_stats;
 
-	led_on = 0;
+	led_on = last_stats = 0;
 	error = hexin = 0;
 	init_held();
 	modifiers = 0;
 	memset(&hexbuf, 0, HEXBUF_SIZE);
 	memset(&keystate, 0, sizeof keystate);
 	hexbufp = hexbuf;
+	unknown_scancodes = ignored_scancodes = 0;
 
 	/**
 	 * if you had a stuck key with scancode 0x04, this is how you'd tell the
@@ -469,6 +522,18 @@ void setup() {
 		} else if (waiting) {
 			waiting = 0;
 		}
+
+#if STAT_INTERVAL
+		if (millis() - last_stats > STAT_INTERVAL * 1000) {
+			Serial.printf("  %d overruns %d resend requests %d unknowns %d ignores\n",
+										keyboard.getOverrunCount(),
+										keyboard.getResendCount(),
+										unknown_scancodes,
+										ignored_scancodes);
+			print_held(0);
+			last_stats = millis();
+		}
+#endif
 	}
 }
 

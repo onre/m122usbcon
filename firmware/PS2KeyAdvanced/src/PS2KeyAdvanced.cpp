@@ -212,6 +212,9 @@ uint8_t PS2_led_lock = 0;     // LED and Lock status
 uint8_t PS2_lockstate[ 4 ];   // Save if had break on key for locks
 uint8_t PS2_keystatus;        // current CAPS etc status for top byte
 
+/* error counters */
+uint32_t resend_count = 0;
+uint32_t overrun_count = 0;
 
 /*------------------ Code starts here -------------------------*/
 
@@ -271,6 +274,7 @@ void ps2interrupt( void )
 		    if( _parity >= 0xFD )    // had parity error
 			{
 			    send_now( PS2_KC_RESEND );    // request resend
+			    resend_count++;
 			    _tx_ready |= _HANDSHAKE;
 			}
 		    else                    // Good so save byte in _rx_buffer
@@ -345,13 +349,12 @@ uint8_t decode_key( uint8_t value )
 
     switch( value )
 	{
-#if 0
 	case 0:      // Buffer overrun Errors Reset modes and buffers
 	case PS2_KC_OVERRUN:
-	    ps2_reset( );
+	    /* ps2_reset( ); */
 	    state = 0xC;
+	    overrun_count++;
 	    break;
-#endif
 	case PS2_KC_RESEND:   // Resend last byte if we have sent something
 	    if( ( _ps2mode & _LAST_VALID ) )
 		{
@@ -855,20 +858,26 @@ PS2KeyAdvanced::PS2KeyAdvanced( )
     // nothing to do here, begin( ) does it all
  }
 
+ uint32_t PS2KeyAdvanced::getResendCount() {
+     return resend_count;
+ } 
 
-/* instantiate class for keyboard  */
-void PS2KeyAdvanced::begin( uint8_t data_pin, uint8_t irq_pin )
-{
-    /* PS2 variables reset */
-    ps2_reset( );
+ uint32_t PS2KeyAdvanced::getOverrunCount() {
+     return overrun_count;
+ } 
 
-    PS2_DataPin = data_pin;
-    PS2_IrqPin = irq_pin;
+ /* instantiate class for keyboard  */
+ void PS2KeyAdvanced::begin(uint8_t data_pin, uint8_t irq_pin) {
+   /* PS2 variables reset */
+   ps2_reset();
 
-    // initialize the pins
-    pininput( PS2_IrqPin );            /* Setup Clock pin */
-    pininput( PS2_DataPin );           /* Setup Data pin */
+   PS2_DataPin = data_pin;
+   PS2_IrqPin = irq_pin;
 
-    // Start interrupt handler
-    attachInterrupt( digitalPinToInterrupt( irq_pin ), ps2interrupt, FALLING );
+   // initialize the pins
+   pininput(PS2_IrqPin);  /* Setup Clock pin */
+   pininput(PS2_DataPin); /* Setup Data pin */
+
+   // Start interrupt handler
+   attachInterrupt(digitalPinToInterrupt(irq_pin), ps2interrupt, FALLING);
 }
