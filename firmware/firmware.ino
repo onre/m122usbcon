@@ -119,7 +119,7 @@ const uint8_t MAX_SCANCODE = 0x8f;
   ((*(volatile uint32_t *) RESTART_ADDR) = (val))
 
 
-#define STAT_INTERVAL 0
+#define STAT_INTERVAL 10
 
 PS2KeyAdvanced keyboard;
 
@@ -462,6 +462,27 @@ void process_serial() {
 	}
 }
 
+void print_stats() {
+	static int checksum;
+	int nchecksum, overruns, resends;
+
+	overruns = keyboard.getOverrunCount();
+	resends = keyboard.getResendCount();
+
+	nchecksum = overruns +	resends +	unknown_scancodes + ignored_scancodes;
+
+	if (checksum != nchecksum) {	
+		Serial.printf("%12ul:  %d overruns %d resend requests %d unknowns %d ignores\n",
+									millis(),
+									overruns,
+									resends,
+									unknown_scancodes,
+									ignored_scancodes);
+		checksum = nchecksum;
+	}
+	print_held(0);
+}
+
 void setup() {
 	static int waiting;
 	unsigned long led_on, last_stats;
@@ -527,11 +548,7 @@ void setup() {
 
 #if STAT_INTERVAL
 		if (millis() - last_stats > STAT_INTERVAL * 1000) {
-			Serial.printf("  %d overruns %d resend requests %d unknowns %d ignores\n",
-										keyboard.getOverrunCount(),
-										keyboard.getResendCount(),
-										unknown_scancodes,
-										ignored_scancodes);
+			print_stats();
 			print_held(0);
 			last_stats = millis();
 		}
