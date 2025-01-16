@@ -22,6 +22,12 @@ Once the connection is established, press the shortcut defined in `firmware/firm
 
 The monitor accepts a few commands. Press `r` to reset the keyboard, `i` to ask for ID, `x` to show which keys are currently being held and `s` to send arbitrary byte of data to it, input in hex. You can exit the hex input by pressing `Esc` or `Spacebar`.
 
+## Statistics
+
+This is another fault-finding tool. It prints out a timestamp followed by the amount of overruns, resend requests, unknown and ignored scancodes at a set interval. The interval is given in seconds as the value of STAT_INTERVAL preprocessor macro. If the interval is 0, the feature is disabled. Connecting is the same as above, but the shortcut does not need to be pressed.
+
+Note that nothing is printed if the values have not changed since last printing or are all still zero.
+
 ## Getting all keys to produce distinct keycodes under Linux
 
 If you're getting keycode F0 (decimal 240) from multiple keys, you will probably need to add some scancode-to-keycode mappings manually.

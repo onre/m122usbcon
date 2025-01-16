@@ -38,6 +38,11 @@ const uint8_t SERIALMON_SHORTCUT_2 = 0x84; /* blank key at numpad top right */
 const unsigned long reset_timeout = 1000;
 
 /**
+ * how often to print error counts on the serial.
+ */
+#define STAT_INTERVAL 0
+
+/**
  * for now, the modifier keys are specified here.
  */
 const uint8_t modifier_ctrl_l = 0x11;
@@ -119,8 +124,6 @@ const uint8_t MAX_SCANCODE = 0x8f;
   ((*(volatile uint32_t *) RESTART_ADDR) = (val))
 
 
-#define STAT_INTERVAL 10
-
 PS2KeyAdvanced keyboard;
 
 int error, hexin;
@@ -168,6 +171,12 @@ void usb_release_all(void) {
 	Keyboard.set_key5(0);
 	Keyboard.set_key6(0);
 	Keyboard.send_now();
+}
+
+void print_millis(void) {
+	unsigned long now;
+	now = millis();
+	Serial.printf("%8lu.%03lu", now/1000, now%1000);
 }
 
 void add_held(uint8_t scancode) {
@@ -374,8 +383,10 @@ void reset_kb(void) {
 void print_held(int print_nothing) {
 	int n = 0;
 
-	if (modifiers)
+	if (modifiers) {
+		print_millis();
 		Serial.printf("  modifiers held: %x\n", modifiers);
+	}
 	
 	for (int i = 0; i < 6; i++) {
 		if (held[i])
@@ -383,7 +394,8 @@ void print_held(int print_nothing) {
 	}
 
 	if (n) {
-		Serial.printf("       keys held: ");
+		print_millis();
+		Serial.printf("  keys held: ");
 		for (int i = 0; i < 6; i++) {
 			if (held[i]) {
 				if (keymap[held[i]].name) {
@@ -433,6 +445,7 @@ void process_serial() {
 				print_held(1);
 				break;
 			default:
+				print_stats();
 				;
 			}
 		} else {
@@ -471,9 +484,9 @@ void print_stats() {
 
 	nchecksum = overruns +	resends +	unknown_scancodes + ignored_scancodes;
 
-	if (checksum != nchecksum) {	
-		Serial.printf("%12ul:  %d overruns %d resend requests %d unknowns %d ignores\n",
-									millis(),
+	if (checksum != nchecksum) {
+		print_millis();
+		Serial.printf("  %d overruns %d resend requests %d unknowns %d ignores\n",
 									overruns,
 									resends,
 									unknown_scancodes,
@@ -508,7 +521,7 @@ void setup() {
 	keyboard.begin(datapin, irqpin);
 
 	if (operating_mode == MODE_SERIALMON)
-		Serial.printf("\nready, resetting kb\n\n");
+		Serial.printf("ready, resetting kb\n\n");
 	
 	reset_kb();
 	
